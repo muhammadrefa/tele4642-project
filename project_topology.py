@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-SNAIL Topology
+SNACK: Social Network Access Connection Kontroller - Topology
 Simulated using Mininet
 
 TELE4642 Network Technologies project

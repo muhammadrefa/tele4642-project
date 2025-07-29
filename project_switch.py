@@ -1,5 +1,5 @@
 """
-SNAIL Switch
+SNACK: Social Network Access Connection Kontroller - Switch
 Powered by Ryu
 
 TELE4642 Network Technologies project
