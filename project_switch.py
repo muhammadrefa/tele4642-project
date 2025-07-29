@@ -17,7 +17,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 
 
-class SNAIL(app_manager.RyuApp):
+class SNACKSwitch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
@@ -25,7 +25,7 @@ class SNAIL(app_manager.RyuApp):
 
         # TODO: set allowed & blocked time in secs (done as class member (or other convenient way)))
 
-        self.logger.info(f"SNAIL initialised!")
+        self.logger.info(f"SNACK initialised!")
         self.logger.info(f"Allow time: {self.time_allowed} secs.")
         self.logger.info(f"Block time: {self.time_blocked} secs.")
 

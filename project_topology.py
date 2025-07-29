@@ -19,7 +19,7 @@ from mininet.topo import Topo
 from mininet.cli import CLI
 
 
-class SNAILTopo(Topo):
+class SNACKTopo(Topo):
     def build(self, k):
         # ----- GENERATE NETWORK DEVICES ----- #
 
