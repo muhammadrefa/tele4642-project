@@ -4,9 +4,10 @@ Why SNACK?
 Background
 ------------
 
-Consider an office environment with its network topology shown in figure below.
+Consider an office environment with its network topology shown in Figure 1.
 
 ![Oversimplified office network topology](assets/office-topo-oversimplified.png "Office network topology, oversimplified")
+*Figure 1. Oversimplified office network topology*
 
 For some reason, many of the employee addicted in accessing social media,
 thus affecting their performance. The IT department cannot block all access to social media services since they have

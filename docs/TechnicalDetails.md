@@ -2,9 +2,10 @@ Behind SNACK
 ================
 
 SNACK employed SDN switches which the controller is powered by [Ryu](https://ryu-sdn.org/).  
-Consider the office topology in the figure below, with the internet represented by 4 cloud services.
+Consider the office topology in Figure 1, with the internet represented by 4 cloud services.
 
 ![Simplified office network topology](assets/office-topo.png "Office network topology, simple version")
+*Figure 1. Office network topology*
 
 Each department have their own switches which connecting all the hosts inside the department, and connect them
 with the central switch. The central switch acts as a gateway for the office network to access the internet
@@ -24,9 +25,10 @@ Simulating the network
 -------------------------
 
 The network simulated using [Mininet](https://mininet.org).  
-Figure below shows the simulation topology with the nodes' name.
+Figure 2 shows the simulation topology with the nodes' name.
 
 ![Simulation scenario](assets/simulation-scenario.png "Simulation scenario")
+*Figure 2. Simulation scenario*
 
 Cloud services represented by mininet hosts. `swISP` exists in order to simulate the gateway from the ISP
 to the internet. The simulation only employs one controller, so the `swISP` also connected to the controller
