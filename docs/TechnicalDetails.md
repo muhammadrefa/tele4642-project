@@ -12,13 +12,7 @@ with the central switch. The central switch acts as a gateway for the office net
 and as the access limiter to the social media services. All switches are connected to the SDN controller.
 
 
-TODO: Explain the proactive rules and how to push them
 
-TODO: Explain the reactive rules and how to push them
-
-TODO: Explain the hard-timeouts
-
-TODO: Flow table
 
 
 Simulating the network
@@ -108,6 +102,26 @@ DPID: `00:00:00:00:02:00:01`
 | 3 | `facebook`     |
 | 3 | `google`       |
 | 3 | `microsoft365` |
+
+
+Flow table
+-----------
+
+There are 2 types of rules: proactive rules and reactive rules.  
+Proactive rules contains the default rule for a switch to work. Basic forwarding done as a proactive rules.  
+Reactive rules contains the rule that added in certain event. In this case, it used for time-limiting the access
+
+The larger the priority number, the highest the priority.
+
+TODO: Explain the hard-timeouts
+
+TODO: Sequence diagram for pushing proactive rules
+
+TODO: Sequence diagram for pushing reactive rules
+
+TODO: Explain the proactive rules and how to push them
+
+TODO: Explain the reactive rules and how to push them
 
 - - -
 
