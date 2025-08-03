@@ -83,7 +83,37 @@ class SNACKSwitch(app_manager.RyuApp):
         Flow table for firewall switch
         :param dp: datapath
         """
+        
+        ofp = dp.ofproto
+        parser = dp.ofproto_parser
+        now = time.time()
+        elapsed = int(now - self.start_time)
+        allow_period = (elapsed // (self.time_allowed + self.time_blocked)) % 2 == 0
+        self.logger.info(f"Installing firewall rules on switch {dp.id} at time {elapsed}s. Allow period: {allow_period}")
+       
+        for src in self.social_dept_ips: # traffic from social media dept to any destination
+            for dst in self.social_media_ips + self.productivity_ips:
+                match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src, ipv4_dst=dst)
+                actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+                self.add_flow(dp, 10, match, actions)
 
+        for src in self.other_dept_ips: # traffic from other dept to productivity services
+            for dst in self.productivity_ips:
+                match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src, ipv4_dst=dst)
+                actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+                self.add_flow(dp, 10, match, actions)
+
+        for src in self.other_dept_ips: # controlled traffic from other dept to social media services
+            for dst in self.social_media_ips:
+                match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src, ipv4_dst=dst)
+                if allow_period:
+                    actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]  # Allow
+                else:
+                    actions = []  # Drop
+                self.add_flow(dp, 10, match, actions)
+
+
+        
         # TODO: Flow table for firewall (reactive). Add arguments if needed
         pass
 
