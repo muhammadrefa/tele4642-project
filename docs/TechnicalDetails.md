@@ -15,7 +15,8 @@ and as the access limiter to the social media services. All switches are connect
 TODO: Explain the proactive rules and how to push them
 
 TODO: Explain the reactive rules and how to push them
-When a user intends to access a particular social media service, 
+
+When a user intends to access a particular social media service (sending a packet to the IP address of the service), if it does not know the address for that particular social media service, its packet will be sent to the controller (as per default flow rules). Upon 
 
 
 
