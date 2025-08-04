@@ -29,11 +29,11 @@ Figure 2 shows the simulation topology with the nodes' name.
 ![Simulation scenario](assets/simulation-scenario.png "Simulation scenario")
 *Figure 2. Simulation scenario*
 
-Cloud services represented by mininet hosts. `swISP` exists in order to simulate the gateway from the ISP
-to the internet. The simulation only employs one controller, so the `swISP` also connected to the controller
-(which in the real world it is not; hence the dotted line between the switch and the controller).
+Cloud services are represented by mininet hosts. `swISP` exists to simulate the gateway from the ISP
+to the Internet. The simulation only employs one controller, so the `swISP` is also connected to the controller
+(realistically, it is not, however for the sake of this simulation and programming the gateway, it is).
 
-The node details are shown in tables below
+The node details are shown in tables below:
 
 ### Social Media dept.
 
@@ -64,7 +64,7 @@ Hosts
 | `hostO1`  | 10.1.2.2 |
 
 `swO`  
-Description: Switch in the other department  
+Description: Switch in another department  
 DPID: `00:00:00:00:01:00:02`
 
 | Port number | Connected to |
@@ -76,7 +76,7 @@ DPID: `00:00:00:00:01:00:02`
 ### Office Gateway/Central
 
 `swCentral`  
-Description: Central switch. Gateway to the internet  
+Description: Central switch. Gateway to the Internet  
 DPID: `00:00:00:00:01:01:01`
 
 | Port number | Connected to |
