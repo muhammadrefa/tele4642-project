@@ -9,11 +9,7 @@ Consider an office environment with its network topology shown in Figure 1.
 ![Oversimplified office network topology](assets/office-topo-oversimplified.png "Office network topology, oversimplified")
 *Figure 1. Oversimplified office network topology*
 
-For some reason, many of the employee addicted in accessing social media,
-thus affecting their performance. The IT department cannot block all access to social media services since they have
-a Social Media department that needs constant access to those services in order to do their job. They also cannot
-fully block social media access to the others since it considered censoring information to the employee, which is
-breaking human rights.
+In a corporate office environment, productivity of its workers are highly valued. As such employers constantly seek methods of improving the overall efficiency and productivity of its employees. However, employees, being human, are susceptible to distractions that would reduce their overall productivity. This particular organisation employs many young people (Gen Z's) to work in their office, who have a predisposition to accessing social media on a regular basis, affecting their performance during work hours. Corporate cannot sanction the IT department to block all access to social media services as there exists a Social Media department of this organisation that requires constant access to those services in order to do their job. They also cannot apply a permanent block on social media access to users outside the Social Media department, as it may be considered infringing upon the rights of employees and a form of discrimination.
 
 
 Here comes SNACK
