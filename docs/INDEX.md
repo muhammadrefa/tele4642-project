@@ -10,7 +10,7 @@ About the project
 - [Why SNACK? (a.k.a. Background)](Background.md)
 - [Behind SNACK (a.k.a. Technical details)](TechnicalDetails.md)
 - [SNACK in action (a.k.a. Results)](Results.md)
-- [Conclusions](Conclusions.md)
+- [Conclusion](Conclusions.md)
 
 - - -
 
