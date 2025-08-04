@@ -74,6 +74,20 @@ class SNACKSwitch(app_manager.RyuApp):
         Flow table for dumb switches
         :param dp: datapath
         """
+        ofp = dp.ofproto
+        parser = dp.ofproto_parser
+        match = parser.OFPMatch(eth_type=0x0800) # match all IPv4 packets
+        actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)] # action: sending the packet normally
+        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=0,
+            match=match,
+            instructions=inst
+        )
+        
+        dp.send_msg(mod)
 
         # TODO: Flow table for dumb switches (proactive)
         pass
