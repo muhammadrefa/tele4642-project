@@ -1,20 +1,21 @@
 Behind SNACK
 ================
 
-SNACK employed SDN switches which the controller is powered by [Ryu](https://ryu-sdn.org/).  
+SNACK employs SDN switches, where the controller is powered by [Ryu](https://ryu-sdn.org/).  
 Consider the office topology in Figure 1, with the internet represented by 4 cloud services.
 
 ![Simplified office network topology](assets/office-topo.png "Office network topology, simple version")
 *Figure 1. Office network topology*
 
-Each department have their own switches which connecting all the hosts inside the department, and connect them
-with the central switch. The central switch acts as a gateway for the office network to access the internet
+Each department has their own switches which connect all the hosts inside the department, and connect them
+with the central switch. The central switch acts as a gateway for the office network to access the Internet
 and as the access limiter to the social media services. All switches are connected to the SDN controller.
 
 
 TODO: Explain the proactive rules and how to push them
 
 TODO: Explain the reactive rules and how to push them
+When a user intends to access a particular social media service, 
 
 TODO: Explain the hard-timeouts
 
