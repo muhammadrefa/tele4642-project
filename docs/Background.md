@@ -24,16 +24,15 @@ As such, these were the origins for the name SNACK: Social Network Access Connec
 Why use SNACK?
 ------------------
 
-The advantages in using SNACK for the employer are:
-- The employees in the Social Media department will have unlimited access to social media services
-- The employees in other department will have time-limited access to social media services
-  - They can access a service for an hour, before getting blocked for another hour
+The advantages of using SNACK for the employer are:
+- Employees working in the Social Media department will have unlimited access to social media services
+- Employees in other departments will have time-limited access to social media services
+  - Services can be accessed for an hour, before getting blocked for another hour
   - The blocking will be done per service (e.g. blocked from accessing X/Twitter does not mean blocked from
-    accessing Facebook) which can be useful to see how addicted the employee in accessing the social media
+    accessing Facebook) which can be useful to identify the social media habits of employees
 - Access to productivity services are not affected
 
-Thanks to SNACK, the employer have their employee less slacking, and the employee still have their 'snack'
-which is accessing social media services.  
+Thanks to SNACK, the employer will no longer have to manually monitor their employees to maintain the office's productivity levels. Furthermore, employees can still enjoy their social media 'snack' during lunch or break times.  
 Happy employer, ~~(hopefully)~~ happy employee.
 
 - - -
