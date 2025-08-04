@@ -15,12 +15,10 @@ In a corporate office environment, productivity of its workers are highly valued
 Here comes SNACK
 ------------------
 
-Time-limiting can be the solution to get the balance between productivity and information access.
-The employee can still access social media services for certain duration, before it gets blocked as a sign to
-get back to work. In this situation, accessing social media can be considered as snacking rather than slacking.
+We propose a time-based solution of limiting access and usage of social media services to achieve a balance between productivity and information access.
+The employee will still be able to access social media services for a certain duration, before access is temporarily cut off, indicating the need to return to work. In this context, accessing social media can be considered as snacking rather than slacking (e.g. the employee peruses social media while on break).
 
-That it is where the name SNACK comes from. As it names, Social Network Access Connection Kontroller,
-we aim to control the connection to the social media services that accessed by the employee. 
+As such, these were the origins for the name SNACK: Social Network Access Connection Kontroller. Indicated by the acronym, we aim to kontrol the connection to the social media services that are accessed by the employee. 
 
 
 Why use SNACK?
