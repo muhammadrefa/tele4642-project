@@ -2,7 +2,7 @@ SNACK: Social Network Access Connection Kontroller
 =============================================
 
 This project aims to time-limit access to certain content. The implementation was done in [Mininet](https://mininet.org)
-and uses OpenFlow SDN switches, controlled via [Ryu](https://ryu-sdn.org/) framework.
+and uses OpenFlow SDN switches, controlled via the [Ryu](https://ryu-sdn.org/) framework.
 
 
 About the project
