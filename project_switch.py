@@ -42,7 +42,19 @@ class SNACKSwitch(app_manager.RyuApp):
     def switch_feature_handler(self, ev):
         msg = ev.msg  # packet_in data structure
         dp = msg.datapath  # datapath (switch)
+        dpid = dp.id
 
+        self.logger.info(f"Switch connected with DPID: {dpid:012x}")
+
+        if dpid == self.dpid_central:
+            self.logger.info("Installing firewall rules on swCentral")
+            self.add_flow_firewall(dp)
+        elif dpid in self.dpid_dumb_switches:
+            self.logger.info("Installing basic flow on dumb switch")
+            self.add_flow_dumb_switch(dp)
+        else:
+            selg.logger.warning(f"Unknown switch DPID: {dpid:012x}, no flow rules installed.")
+        
         self.add_proactive_flow(dp)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
