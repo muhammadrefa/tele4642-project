@@ -88,7 +88,15 @@ class SNACKSwitch(app_manager.RyuApp):
         """
         ofp = dp.ofproto  # openflow protocol
         ofp_parser = dp.ofproto_parser
-
+        dpid = dp.id
+        if dpid == self.dpid_central:
+            self.logger.info("Installing proactive firewall rules")
+            self.add_flow_firewall(dp)
+        elif dpid in self.dpid_dumb_switches:
+            self.logger.info("Installing proactive dumb switches rules")
+            self.add_flow_dumb_switch(dp)
+        else:
+            self.logger.info("Unknown switch! No proactive flows installed")
         # TODO: Check datapath to distinguish dumb switches and firewall (move checking if necessary)
 
         # Example
