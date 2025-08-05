@@ -64,6 +64,21 @@ class SNACKSwitch(app_manager.RyuApp):
         ofp = dp.ofproto        # openflow protocol
         ofp_parser = dp.ofproto_parser
 
+        in_port = msg.match['in_port']
+
+        pkt = packet.packet(msg.data)
+        eth = pkt.get_protocols(ethernet.ethernet)[0]
+        if eth.ethertype == 0x88cc:
+            return
+
+        self.logger.info(f"Packetin from switch {dpid:012x}, in_port {in_port}, src {eth.src}, dst {eth.dst}")
+
+        if dpid == self.dpid_central:
+            self.logger.info("Packet came from firewall. Applying reactive flow logic.")
+            self.add_reactive_flow(dp)
+        else:
+            self.logger.info("Packet came from dumb switch. Ignored.")
+        
         self.add_reactive_flow(dp)
 
     def add_proactive_flow(self, dp) -> None:
