@@ -42,7 +42,7 @@ Hosts
 
 `swS`  
 Description: Switch in the Social Media Department  
-DPID: `00:00:00:00:01:00:01`
+DPID: `00:00:00:00:00:01:00:01`
 
 | Port number | Connected to |
 | ----------- | ------------ |
@@ -61,7 +61,7 @@ Hosts
 
 `swO`  
 Description: Switch in another department  
-DPID: `00:00:00:00:01:00:02`
+DPID: `00:00:00:00:00:01:00:02`
 
 | Port number | Connected to |
 | ----------- |--------------|
@@ -73,7 +73,7 @@ DPID: `00:00:00:00:01:00:02`
 
 `swCentral`  
 Description: Central switch. Gateway to the Internet  
-DPID: `00:00:00:00:01:01:01`
+DPID: `00:00:00:00:00:01:01:01`
 
 | Port number | Connected to |
 | ----------- |--------------|
@@ -94,7 +94,7 @@ Hosts
 
 `swISP`  
 Description: Switch in the Internet Service Provider (ISP)  
-DPID: `00:00:00:00:02:00:01`
+DPID: `00:00:00:00:00:02:00:01`
 
 | Port number | Connected to   |
 | ----------- |----------------|
