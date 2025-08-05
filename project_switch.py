@@ -9,7 +9,7 @@ TELE4642 Network Technologies project
 
 The University of New South Wales - 2025
 """
-
+import time
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -27,6 +27,7 @@ class SNACKSwitch(app_manager.RyuApp):
         self.time_allowed = 3600
         self.time_blocked = 3600
         self.start_time = time.time()
+        
         self.social_dept_ips = ['10.1.1.1', '10.1.1.2']
         self.other_dept_ips = ['10.1.2.1', '10.1.2.2']
         self.social_media_ips = ['10.2.1.1', '10.2.4.1']
@@ -34,6 +35,7 @@ class SNACKSwitch(app_manager.RyuApp):
 
         self.dpid_central = 0x000001010101
         self.dpid_dump_switches = {0x000001000001, 0x000100000002, 0x000200000001}
+        self.pair_timers = {}
         self.logger.info(f"SNACK initialised!")
         self.logger.info(f"Allow time: {self.time_allowed} secs.")
         self.logger.info(f"Block time: {self.time_blocked} secs.")
@@ -47,13 +49,13 @@ class SNACKSwitch(app_manager.RyuApp):
         self.logger.info(f"Switch connected with DPID: {dpid:012x}")
 
         if dpid == self.dpid_central:
-            self.logger.info("Installing firewall rules on swCentral")
-            self.add_flow_firewall(dp)
+            self.logger.info("Firewall rules are handled reactively")
+            #self.add_flow_firewall(dp)
         elif dpid in self.dpid_dumb_switches:
             self.logger.info("Installing basic flow on dumb switch")
             self.add_flow_dumb_switch(dp)
         else:
-            selg.logger.warning(f"Unknown switch DPID: {dpid:012x}, no flow rules installed.")
+            self.logger.warning(f"Unknown switch DPID: {dpid:012x}, no flow rules installed.")
         
         self.add_proactive_flow(dp)
 
@@ -79,7 +81,7 @@ class SNACKSwitch(app_manager.RyuApp):
         else:
             self.logger.info("Packet came from dumb switch. Ignored.")
         
-        self.add_reactive_flow(dp)
+        #self.add_reactive_flow(dp)
 
     def add_proactive_flow(self, dp) -> None:
         """
@@ -89,27 +91,38 @@ class SNACKSwitch(app_manager.RyuApp):
         ofp = dp.ofproto  # openflow protocol
         ofp_parser = dp.ofproto_parser
         dpid = dp.id
-        if dpid == self.dpid_central:
+        match_arp = parser.OFPMatch(eth_type=0x0806) #ARP
+        actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+        self.add_flow(dp, 1, match_arp, actions)
+        '''if dpid == self.dpid_central:
             self.logger.info("Installing proactive firewall rules")
-            self.add_flow_firewall(dp)
-        elif dpid in self.dpid_dumb_switches:
+            self.add_flow_firewall(dp)'''
+        if dpid in self.dpid_dumb_switches:
             self.logger.info("Installing proactive dumb switches rules")
             self.add_flow_dumb_switch(dp)
+        elif dpid == self.dpid_central:
+            self.logger.info("Central switch handled reactively")
         else:
             self.logger.info("Unknown switch! No proactive flows installed")
         # TODO: Check datapath to distinguish dumb switches and firewall (move checking if necessary)
-
-        # Example
-        if not (dp.id & 0xFFFFFF):
-            self.logger.info(f"not switch (?) (dpid: {dp.id:016x})")
-            return
 
     def add_reactive_flow(self, dp):
         """
         Add reactive flow
         :param dp: datapath
         """
+        parser = dp.ofproto_parser
+        pkt = packet.Packet(msg.data)
+        ip_pkt = pkt.get_protocol(ipv4.ipv4)
+        if not ip_pkt: # not an IPv4 packet
+            return  
 
+        src_ip = ip_pkt.src
+        dst_ip = ip_pkt.dst
+
+        self.logger.info(f"Reactive decision: src={src_ip}, dst={dst_ip}")
+
+        self.add_flow_firewall(dp, src_ip, dst_ip)
         # TODO: Check datapath to distinguish dumb switches and firewall (move checking if necessary)
         pass
 
@@ -141,8 +154,48 @@ class SNACKSwitch(app_manager.RyuApp):
         Flow table for firewall switch
         :param dp: datapath
         """
-        
+        parser = dp.ofproto_parser
         ofp = dp.ofproto
+        match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src_ip, ipv4_dst=dst_ip)
+
+        if src_ip in self.social_dept_ips:
+            self.logger.info(f"[ALLOW] Social Dept {src_ip} to {dst_ip}")
+            actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+            self.add_flow(dp, 10, match, actions)
+            return
+
+        if src_ip in self.other_dept_ips and dst_ip in self.productivity_ips:
+            self.logger.info(f"[ALLOW] Other Dept {src_ip} to productivity {dst_ip}")
+            actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+            self.add_flow(dp, 10, match, actions)
+            return
+
+        if src_ip in self.other_dept_ips and dst_ip in self.social_media_ips:
+            key = (src_ip, dst_ip)
+            now = time.time()
+            if key not in self.pair_timers:
+                self.pair_timers[key] = now
+                self.logger.info(f"Started timer for ({src_ip}, {dst_ip})")
+
+            elapsed = int(now - self.pair_timers[key])
+            cycle_time = self.time_allowed + self.time_blocked
+            time_in_cycle = elapsed % cycle_time
+            allow = time_in_cycle < self.time_allowed
+
+            if allow:
+                self.logger.info(f"[ALLOW] {src_ip} to {dst_ip} (within allowed window)")
+                actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+            else:
+                self.logger.info(f"[BLOCK] {src_ip} to {dst_ip} (within blocked window)")
+                actions = []
+
+            self.add_flow(dp, 10, match, actions, hard_timeout=3600)
+            return
+
+        self.logger.warning(f"[DROP] Unknown or unexpected traffic: {src_ip} -> {dst_ip}")
+        self.add_flow(dp, 10, match, [])
+
+        '''ofp = dp.ofproto
         parser = dp.ofproto_parser
         now = time.time()
         elapsed = int(now - self.start_time)
@@ -168,69 +221,20 @@ class SNACKSwitch(app_manager.RyuApp):
                     actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]  # Allow
                 else:
                     actions = []  # Drop
-                self.add_flow(dp, 10, match, actions)
+                self.add_flow(dp, 10, match, actions)'''
 
 
         
         # TODO: Flow table for firewall (reactive). Add arguments if needed
         pass
 
-    # Flow table example
-    def flow_edge(self, dp, sw_num: int, pod_num: int):
-        ofp = dp.ofproto  # openflow protocol
-        ofp_parser = dp.ofproto_parser
-
-        # ARP
-        match = ofp_parser.OFPMatch(in_port=1, eth_type=0x0806)
-        actions = [ofp_parser.OFPActionOutput(2), ofp_parser.OFPActionOutput(3)]
-        mod = ofp_parser.OFPFlowMod(
-            datapath=dp,
-            priority=1,
-            match=match,
-            instructions=[ofp_parser.OFPInstructionActions(
-                ofp.OFPIT_APPLY_ACTIONS,
-                actions
-            )]
+    def add_flow(self, dp, priority, match, actions, idle_timeout=0, hard_timeout=0):
+        ofp = dp.ofproto
+        parser = dp.ofproto_parser
+        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)]
+        mod = parser.OFPFlowMod(
+            datapath=dp, priority=priority, match=match,
+            instructions=inst, idle_timeout=idle_timeout,
+            hard_timeout=hard_timeout
         )
         dp.send_msg(mod)
-
-        for i in range(0, math.ceil(self.k / 2)):
-            mod = ofp_parser.OFPFlowMod(
-                datapath=dp,
-                command=ofp.OFPFC_ADD,
-                priority=ofp.OFP_DEFAULT_PRIORITY,
-                match=ofp_parser.OFPMatch(eth_type=0x0800, ipv4_dst=f'10.{pod_num}.{sw_num}.{i + 2}/32'),
-                instructions=[ofp_parser.OFPInstructionActions(
-                    ofp.OFPIT_APPLY_ACTIONS,
-                    [ofp_parser.OFPActionOutput(i + 1)]
-                )]
-            )
-            dp.send_msg(mod)
-
-        # edge to aggregation
-        match = ofp_parser.OFPMatch(eth_type=0x0800, ipv4_dst=f'0.0.0.0/0')
-        mod = ofp_parser.OFPFlowMod(
-            datapath=dp,
-            # table_id=3,
-            command=ofp.OFPFC_ADD,
-            priority=ofp.OFP_DEFAULT_PRIORITY,
-            match=match,
-            instructions=[ofp_parser.OFPInstructionGotoTable(3)]
-        )
-        dp.send_msg(mod)
-
-        for i in range(0, math.ceil(self.k / 2)):
-            match = ofp_parser.OFPMatch(eth_type=0x0800, ipv4_dst=(f'0.0.0.{i + 2}', '0.0.0.255'))
-            actions = [ofp_parser.OFPActionOutput(math.ceil(self.k / 2) + i + 1)]
-            mod = ofp_parser.OFPFlowMod(
-                datapath=dp,
-                table_id=3,
-                command=ofp.OFPFC_ADD,
-                priority=ofp.OFP_DEFAULT_PRIORITY,
-                match=match,
-                instructions=[ofp_parser.OFPInstructionActions(
-                    ofp.OFPIT_APPLY_ACTIONS,
-                    actions
-                )]
-            )
-            dp.send_msg(mod)
