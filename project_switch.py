@@ -24,7 +24,16 @@ class SNACKSwitch(app_manager.RyuApp):
         super().__init__(*args, **kwargs)
 
         # TODO: set allowed & blocked time in secs (done as class member (or other convenient way)))
+        self.time_allowed = 3600
+        self.time_allowed = 3600
+        self.start_time = time.time()
+        self.social_dept_ips = ['10.1.1.1', '10.1.1.2']
+        self.other_dept_ips = ['10.1.2.1', '10.1.2.2']
+        self.social_media_ips = ['10.2.1.1', '10.2.4.1']
+        self.productivity_ips = ['10.2.3.1', '10.2.4.1']
 
+        self.dpid_central = 0x000001010101
+        self.dpid_dump_switches = {0x000001000001, 0x000100000002, 0x000200000001}
         self.logger.info(f"SNACK initialised!")
         self.logger.info(f"Allow time: {self.time_allowed} secs.")
         self.logger.info(f"Block time: {self.time_blocked} secs.")
