@@ -25,7 +25,7 @@ class SNACKSwitch(app_manager.RyuApp):
 
         # TODO: set allowed & blocked time in secs (done as class member (or other convenient way)))
         self.time_allowed = 3600
-        self.time_allowed = 3600
+        self.time_blocked = 3600
         self.start_time = time.time()
         self.social_dept_ips = ['10.1.1.1', '10.1.1.2']
         self.other_dept_ips = ['10.1.2.1', '10.1.2.2']
