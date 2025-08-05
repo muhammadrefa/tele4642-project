@@ -1,18 +1,23 @@
 Behind SNACK
 ================
 
-SNACK employed SDN switches which the controller is powered by [Ryu](https://ryu-sdn.org/).  
+SNACK employs SDN switches, where the controller is powered by [Ryu](https://ryu-sdn.org/).  
 Consider the office topology in Figure 1, with the internet represented by 4 cloud services.
 
 ![Simplified office network topology](assets/office-topo.png "Office network topology, simple version")
 *Figure 1. Office network topology*
 
-Each department have their own switches which connecting all the hosts inside the department, and connect them
-with the central switch. The central switch acts as a gateway for the office network to access the internet
+Each department has their own switches which connect all the hosts inside the department, and connect them
+with the central switch. The central switch acts as a gateway for the office network to access the Internet
 and as the access limiter to the social media services. All switches are connected to the SDN controller.
 
 
 
+When a user intends to access a particular social media service (sending a packet to the IP address of the service), if it does not know the address for that particular social media service, its packet will be sent to the controller (as per default flow rules). Upon 
+
+TODO: Explain the hard-timeouts
+
+TODO: Flow table
 
 
 Simulating the network
@@ -24,11 +29,11 @@ Figure 2 shows the simulation topology with the nodes' name.
 ![Simulation scenario](assets/simulation-scenario.png "Simulation scenario")
 *Figure 2. Simulation scenario*
 
-Cloud services represented by mininet hosts. `swISP` exists in order to simulate the gateway from the ISP
-to the internet. The simulation only employs one controller, so the `swISP` also connected to the controller
-(which in the real world it is not; hence the dotted line between the switch and the controller).
+Cloud services are represented by mininet hosts. `swISP` exists to simulate the gateway from the ISP
+to the Internet. The simulation only employs one controller, so the `swISP` is also connected to the controller
+(realistically, it is not, however for the sake of this simulation and programming the gateway, it is).
 
-The node details are shown in tables below
+The node details are shown in tables below:
 
 ### Social Media dept.
 
@@ -59,7 +64,7 @@ Hosts
 | `hostO1`  | 10.1.2.2 |
 
 `swO`  
-Description: Switch in the other department  
+Description: Switch in another department  
 DPID: `00:00:00:00:01:00:02`
 
 | Port number | Connected to |
@@ -71,7 +76,7 @@ DPID: `00:00:00:00:01:00:02`
 ### Office Gateway/Central
 
 `swCentral`  
-Description: Central switch. Gateway to the internet  
+Description: Central switch. Gateway to the Internet  
 DPID: `00:00:00:00:01:01:01`
 
 | Port number | Connected to |
