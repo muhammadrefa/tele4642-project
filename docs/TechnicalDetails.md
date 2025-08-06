@@ -96,13 +96,13 @@ Hosts
 Description: Switch in the Internet Service Provider (ISP)  
 DPID: `00:00:00:00:00:02:00:01`
 
-| Port number | Connected to   |
-| ----------- |----------------|
-| 1 | `swCentral`    |
-| 2 | `twitter`      |
-| 3 | `facebook`     |
-| 3 | `google`       |
-| 3 | `microsoft365` |
+| Port number | Connected to |
+|-------------|--------------|
+| 1           | `swCentral`  |
+| 2           | `twitter`    |
+| 3           | `facebook`   |
+| 4           | `google`     |
+| 5           | `m365`       |
 
 
 Flow table
