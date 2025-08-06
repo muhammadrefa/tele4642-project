@@ -35,7 +35,8 @@ class SNACKSwitch(app_manager.RyuApp):
         self.productivity_ips = ['10.2.3.1', '10.2.4.1']
 
         self.dpid_central = 0x0000000000010101
-        self.dpid_dumb_switches = {0x0000000000010001, 0x0000000000010002, 0x0000000000020001}
+        self.dpid_dumb_switches = {0x0000000000010001, 0x0000000000010002}
+        self.dpid_isp_switch = 0x0000000000020001
         self.pair_timers = {}
         self.logger.info(f"SNACK initialised!")
         self.logger.info(f"Allow time: {self.time_allowed} secs.")
@@ -47,18 +48,22 @@ class SNACKSwitch(app_manager.RyuApp):
         dp = msg.datapath  # datapath (switch)
         dpid = dp.id
 
-        self.logger.info(f"Switch connected with DPID: {dpid:012x}")
+        self.logger.info(f"Switch connected with DPID: {dpid:016x}")
 
         if dpid == self.dpid_central:
             self.logger.info("Firewall rules are handled reactively")
             #self.add_flow_firewall(dp)
+            self.add_flow_central_switch(dp)
         elif dpid in self.dpid_dumb_switches:
             self.logger.info("Installing basic flow on dumb switch")
             self.add_flow_dumb_switch(dp)
+        elif dpid == self.dpid_isp_switch:
+            self.logger.info("Installing proactive ISP switch flows")
+            self.add_flow_isp_switch(dp)
         else:
-            self.logger.warning(f"Unknown switch DPID: {dpid:012x}, no flow rules installed.")
+            self.logger.warning(f"Unknown switch DPID: {dpid:016x}, no flow rules installed.")
         
-        self.add_proactive_flow(dp)
+        # self.add_proactive_flow(dp)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
@@ -99,10 +104,11 @@ class SNACKSwitch(app_manager.RyuApp):
             self.logger.info("Installing proactive firewall rules")
             self.add_flow_firewall(dp)'''
         if dpid in self.dpid_dumb_switches:
-            self.logger.info("Installing proactive dumb switches rules")
+            self.logger.info("Installing proactive dumb switches flows")
             self.add_flow_dumb_switch(dp)
         elif dpid == self.dpid_central:
             self.logger.info("Central switch handled reactively")
+            self.add_flow_central_switch(dp)
         else:
             self.logger.info("Unknown switch! No proactive flows installed")
         # TODO: Check datapath to distinguish dumb switches and firewall (move checking if necessary)
@@ -134,7 +140,8 @@ class SNACKSwitch(app_manager.RyuApp):
         """
         ofp = dp.ofproto
         parser = dp.ofproto_parser
-        match = parser.OFPMatch(eth_type=0x0800) # match all IPv4 packets
+
+        match = parser.OFPMatch(eth_type=0x0800, ipv4_dst=f'10.1.{dp.id & 0xFF}.0/24') # match IPv4 packets in the subnet
         actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)] # action: sending the packet normally
         inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
 
@@ -147,8 +154,131 @@ class SNACKSwitch(app_manager.RyuApp):
         
         dp.send_msg(mod)
 
-        # TODO: Flow table for dumb switches (proactive)
-        pass
+        match = parser.OFPMatch(eth_type=0x0800) # match all IPv4 packets
+        actions = [parser.OFPActionOutput(3)] # action: sending the packet to the central switch
+        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=0,
+            match=match,
+            instructions=inst
+        )
+
+        dp.send_msg(mod)
+
+        match = parser.OFPMatch(eth_type=0x0806) # match all IPv4 packets
+        actions = [parser.OFPActionOutput(ofp.OFPP_FLOOD)] # action: sending the packet to the central switch
+        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=0,
+            match=match,
+            instructions=inst
+        )
+
+        dp.send_msg(mod)
+
+    def add_flow_central_switch(self, dp) -> None:
+        """
+        Flow table for dumb switches
+        :param dp: datapath
+        """
+        ofp = dp.ofproto
+        parser = dp.ofproto_parser
+
+        for subnet in range(1, 3):
+            match = parser.OFPMatch(eth_type=0x0800, ipv4_dst=f'10.1.{subnet}.0/24') # match IPv4 packets in the subnet
+            actions = [parser.OFPActionOutput(subnet)] # action: sending the packet normally
+            inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+            mod = parser.OFPFlowMod(
+                datapath=dp,
+                priority=0,
+                match=match,
+                instructions=inst
+            )
+
+            dp.send_msg(mod)
+
+        match = parser.OFPMatch(eth_type=0x0800, ipv4_dst="10.2.0.0/16") # match all IPv4 packets
+        actions = [parser.OFPActionOutput(3)] # action: sending the packet to the central switch
+        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=0,
+            match=match,
+            instructions=inst
+        )
+
+        dp.send_msg(mod)
+
+        match = parser.OFPMatch(eth_type=0x0806) # match all IPv4 packets
+        actions = [parser.OFPActionOutput(ofp.OFPP_FLOOD)] # action: sending the packet to the central switch
+        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=0,
+            match=match,
+            instructions=inst
+        )
+
+        dp.send_msg(mod)
+
+        self.logger.info("Basic flow rules for central switch pushed!")
+
+    def add_flow_isp_switch(self, dp) -> None:
+        """
+        Flow table for dumb switches
+        :param dp: datapath
+        """
+        ofp = dp.ofproto
+        parser = dp.ofproto_parser
+
+        for server_num in range(1, 5):
+            match = parser.OFPMatch(eth_type=0x0800, ipv4_dst=f'10.2.{server_num}.1/24') # match IPv4 packets in the subnet
+            actions = [parser.OFPActionOutput(server_num+1)] # action: sending the packet normally
+            inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+            mod = parser.OFPFlowMod(
+                datapath=dp,
+                priority=0,
+                match=match,
+                instructions=inst
+            )
+
+            dp.send_msg(mod)
+
+        match = parser.OFPMatch(eth_type=0x0800, ipv4_dst="10.1.0.0/16") # match all IPv4 packets
+        actions = [parser.OFPActionOutput(1)] # action: sending the packet to the central switch
+        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=0,
+            match=match,
+            instructions=inst
+        )
+
+        dp.send_msg(mod)
+
+        match = parser.OFPMatch(eth_type=0x0806) # match all IPv4 packets
+        actions = [parser.OFPActionOutput(ofp.OFPP_FLOOD)] # action: sending the packet to the central switch
+        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=0,
+            match=match,
+            instructions=inst
+        )
+
+        dp.send_msg(mod)
+
+        self.logger.info("Basic flow rules for central switch pushed!")
 
     def add_flow_firewall(self, dp, src_ip, dst_ip) -> None:
         """
