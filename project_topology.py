@@ -29,23 +29,23 @@ class SNACKTopo(Topo):
         # TODO: Internal switches
         # Define departments and their /24 subnets (second octet)
         # --- Internal departmental switches ---
-        swS = self.addSwitch(name='swS', dpid='00000000000101')
-        swO = self.addSwitch(name='swO', dpid='00000000000201')
+        swS = self.addSwitch(name='swS', dpid='0000000000010001')
+        swO = self.addSwitch(name='swO', dpid='0000000000010002')
 
         # --- Hosts for Social media dept (S) ---
-        hostS0 = self.addHost(name='hostS0', ip='10.1.1.1/24')
-        hostS1 = self.addHost(name='hostS1', ip='10.1.1.2/24')
+        hostS0 = self.addHost(name='hostS0', ip='10.1.1.1')
+        hostS1 = self.addHost(name='hostS1', ip='10.1.1.2')
         self.addLink(swS, hostS0, port1=1)
         self.addLink(swS, hostS1, port1=2)
 
         # --- Hosts for Other dept (O) ---
-        hostO0 = self.addHost(name='hostO0', ip='10.1.2.1/24')
-        hostO1 = self.addHost(name='hostO1', ip='10.1.2.2/24')
+        hostO0 = self.addHost(name='hostO0', ip='10.1.2.1')
+        hostO1 = self.addHost(name='hostO1', ip='10.1.2.2')
         self.addLink(swO, hostO0, port1=1)
         self.addLink(swO, hostO1, port1=2)
 
         # --- Central SDN switch ---
-        core_sw = self.addSwitch(name='swCentral', dpid='00000000010101')
+        core_sw = self.addSwitch(name='swCentral', dpid='0000000000010101')
 
         # Link central switch to departmental switches
         # Note: port numbers on core switch are 1 and 2, on dept switches fixed at port 3
@@ -55,14 +55,14 @@ class SNACKTopo(Topo):
         # --- External network simulated devices ---
 
         # ISP/external switch
-        isp_sw = self.addSwitch(name='swISP', dpid='00000000020001')
+        isp_sw = self.addSwitch(name='swISP', dpid='0000000000020001')
         self.addLink(isp_sw, core_sw, port1=1, port2=3)
 
         # External service hosts
-        twitter = self.addHost(name='twitter', ip='10.2.1.1/24')
-        facebook = self.addHost(name='facebook', ip='10.2.2.1/24')
-        google = self.addHost(name='google', ip='10.2.3.1/24')
-        m365 = self.addHost(name='m365', ip='10.2.4.1/24')
+        twitter = self.addHost(name='twitter', ip='10.2.1.1')
+        facebook = self.addHost(name='facebook', ip='10.2.2.1')
+        google = self.addHost(name='google', ip='10.2.3.1')
+        m365 = self.addHost(name='m365', ip='10.2.4.1')
 
         # Connect external hosts to ISP switch
         self.addLink(isp_sw, twitter, port1=2)
@@ -93,6 +93,7 @@ class SNACKTopo(Topo):
         # self.addLink(edSws[pod][i], hosts[pod][(i * edSw_cnt) + j], port1=j+1)
 
 
+topos = {'snack': SNACKTopo}
 if __name__ == "__main__":
         topo = SNACKTopo()
 

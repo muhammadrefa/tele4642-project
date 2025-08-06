@@ -15,6 +15,7 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
+from ryu.lib.packet import packet, ipv4, ethernet
 
 
 class SNACKSwitch(app_manager.RyuApp):
@@ -33,8 +34,8 @@ class SNACKSwitch(app_manager.RyuApp):
         self.social_media_ips = ['10.2.1.1', '10.2.4.1']
         self.productivity_ips = ['10.2.3.1', '10.2.4.1']
 
-        self.dpid_central = 0x000001010101
-        self.dpid_dump_switches = {0x000001000001, 0x000100000002, 0x000200000001}
+        self.dpid_central = 0x0000000000010101
+        self.dpid_dumb_switches = {0x0000000000010001, 0x0000000000010002, 0x0000000000020001}
         self.pair_timers = {}
         self.logger.info(f"SNACK initialised!")
         self.logger.info(f"Allow time: {self.time_allowed} secs.")
@@ -68,16 +69,16 @@ class SNACKSwitch(app_manager.RyuApp):
 
         in_port = msg.match['in_port']
 
-        pkt = packet.packet(msg.data)
+        pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
         if eth.ethertype == 0x88cc:
             return
 
-        self.logger.info(f"Packetin from switch {dpid:012x}, in_port {in_port}, src {eth.src}, dst {eth.dst}")
+        self.logger.info(f"Packetin from switch {dp.id:012x}, in_port {in_port}, src {eth.src}, dst {eth.dst}")
 
-        if dpid == self.dpid_central:
+        if dp.id == self.dpid_central:
             self.logger.info("Packet came from firewall. Applying reactive flow logic.")
-            self.add_reactive_flow(dp)
+            self.add_reactive_flow(dp, msg)
         else:
             self.logger.info("Packet came from dumb switch. Ignored.")
         
@@ -91,8 +92,8 @@ class SNACKSwitch(app_manager.RyuApp):
         ofp = dp.ofproto  # openflow protocol
         ofp_parser = dp.ofproto_parser
         dpid = dp.id
-        match_arp = parser.OFPMatch(eth_type=0x0806) #ARP
-        actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+        match_arp = ofp_parser.OFPMatch(eth_type=0x0806) #ARP
+        actions = [ofp_parser.OFPActionOutput(ofp.OFPP_NORMAL)]
         self.add_flow(dp, 1, match_arp, actions)
         '''if dpid == self.dpid_central:
             self.logger.info("Installing proactive firewall rules")
@@ -106,7 +107,7 @@ class SNACKSwitch(app_manager.RyuApp):
             self.logger.info("Unknown switch! No proactive flows installed")
         # TODO: Check datapath to distinguish dumb switches and firewall (move checking if necessary)
 
-    def add_reactive_flow(self, dp):
+    def add_reactive_flow(self, dp, msg):
         """
         Add reactive flow
         :param dp: datapath
@@ -149,7 +150,7 @@ class SNACKSwitch(app_manager.RyuApp):
         # TODO: Flow table for dumb switches (proactive)
         pass
 
-    def add_flow_firewall(self, dp) -> None:
+    def add_flow_firewall(self, dp, src_ip, dst_ip) -> None:
         """
         Flow table for firewall switch
         :param dp: datapath
