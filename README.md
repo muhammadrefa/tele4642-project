@@ -1,5 +1,5 @@
 SNACK: Social Network Access Connection Kontroller
-------------------------------------------
+=============================================
 A TELE4642 Network Technologies project
 
 Group Members:

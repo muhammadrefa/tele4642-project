@@ -20,7 +20,7 @@ from mininet.cli import CLI
 
 
 class SNACKTopo(Topo):
-    def build(self, k):
+    def build(self):
         # ----- GENERATE NETWORK DEVICES ----- #
 
         # --- Internal network devices --- #
@@ -28,63 +28,49 @@ class SNACKTopo(Topo):
         # TODO: Other dept. hosts
         # TODO: Internal switches
         # Define departments and their /24 subnets (second octet)
-        departments = {
-            'S': 1,
-            'O': 2,
-            # add more departments here with unique subnet IDs
-        }
+        # --- Internal departmental switches ---
+        swS = self.addSwitch(name='swS', dpid='00000000000101')
+        swO = self.addSwitch(name='swO', dpid='00000000000201')
 
-        # Create departmental switches and hosts
-        dept_switches = {}
-        for dept_name, subnet_id in departments.items():
-                # Add a switch for the department
-                sw = self.addSwitch(
-                        name=f'sw{dept_name}',
-                        dpid=f'0000000000{subnet_id:02X}01'
-                )
-                dept_switches[dept_name] = sw
+        # --- Hosts for Social media dept (S) ---
+        hostS0 = self.addHost(name='hostS0', ip='10.1.1.1/24')
+        hostS1 = self.addHost(name='hostS1', ip='10.1.1.2/24')
+        self.addLink(swS, hostS0, port1=1)
+        self.addLink(swS, hostS1, port1=2)
 
-                # Add hosts for this department
-                for h in range(k):
-                        ip = f'10.1.{subnet_id}.{h + 1}/24'
-                        host = self.addHost(
-                                name=f'host{dept_name}{h}',
-                                ip=ip
-                        )
-                        self.addLink(sw, host)
+        # --- Hosts for Other dept (O) ---
+        hostO0 = self.addHost(name='hostO0', ip='10.1.2.1/24')
+        hostO1 = self.addHost(name='hostO1', ip='10.1.2.2/24')
+        self.addLink(swO, hostO0, port1=1)
+        self.addLink(swO, hostO1, port1=2)
 
-        # Central SDN switch
-        core_sw = self.addSwitch(
-                name='swCentral',
-                dpid='00000000010101'
-        )
-        for sw in dept_switches.values():
-                self.addLink(core_sw, sw)
+        # --- Central SDN switch ---
+        core_sw = self.addSwitch(name='swCentral', dpid='00000000010101')
 
-        # --- External network simulated devices --- #
-        # TODO: Social media services servers
-        # TODO: External network switch (simulating ISP switch)
+        # Link central switch to departmental switches
+        # Note: port numbers on core switch are 1 and 2, on dept switches fixed at port 3
+        self.addLink(core_sw, swS, port1=1, port2=3)
+        self.addLink(core_sw, swO, port1=2, port2=3)
 
-        # Simulated ISP/external switch
-        isp_sw = self.addSwitch(
-                name='swISP',
-                dpid='00000000020001'
-        )
-        self.addLink(isp_sw, core_sw)
+        # --- External network simulated devices ---
+
+        # ISP/external switch
+        isp_sw = self.addSwitch(name='swISP', dpid='00000000020001')
+        self.addLink(isp_sw, core_sw, port1=1, port2=3)
 
         # External service hosts
-        services = {
-                'twitter': '10.2.1.1/24',
-                'facebook': '10.2.2.1/24',
-                'google': '10.2.3.1/24',
-                'm365': '10.2.4.1/24',
-        }
-        for svc_name, svc_ip in services.items():
-                svc_host = self.addHost(
-                        name=svc_name,
-                        ip=svc_ip
-                )
-                self.addLink(isp_sw, svc_host)
+        twitter = self.addHost(name='twitter', ip='10.2.1.1/24')
+        facebook = self.addHost(name='facebook', ip='10.2.2.1/24')
+        google = self.addHost(name='google', ip='10.2.3.1/24')
+        m365 = self.addHost(name='m365', ip='10.2.4.1/24')
+
+        # Connect external hosts to ISP switch
+        self.addLink(isp_sw, twitter, port1=2)
+        self.addLink(isp_sw, facebook, port1=3)
+        self.addLink(isp_sw, google, port1=4)
+        self.addLink(isp_sw, m365, port1=5)
+
+
 
         # Example (from Fat Tree Topo)
         # edSws = [[self.addSwitch(f'edSw{pod}{i}', dpid=f'0000000000{pod:02X}{i:02X}01') for i in range(0, edSw_cnt)] for pod in range(0, k)]
@@ -108,14 +94,7 @@ class SNACKTopo(Topo):
 
 
 if __name__ == "__main__":
-        # Prompt user for number of hosts per department
-        try:
-                k = int(input('Enter number of hosts per department (e.g., 2): ').strip())
-        except ValueError:
-                print('Invalid input, defaulting to 2 hosts per department.')
-                k = 2
-
-        topo = SNACKTopo(k)
+        topo = SNACKTopo()
 
         # I cannot get this working in Fat Tree Topology
         net = Mininet(topo=topo, link=TCLink, controller=None, autoSetMacs=True, autoStaticArp=True)
