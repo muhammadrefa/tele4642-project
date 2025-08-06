@@ -49,21 +49,8 @@ class SNACKSwitch(app_manager.RyuApp):
         dpid = dp.id
 
         self.logger.info(f"Switch connected with DPID: {dpid:016x}")
-
-        if dpid == self.dpid_central:
-            self.logger.info("Firewall rules are handled reactively")
-            #self.add_flow_firewall(dp)
-            self.add_flow_central_switch(dp)
-        elif dpid in self.dpid_dumb_switches:
-            self.logger.info("Installing basic flow on dumb switch")
-            self.add_flow_dumb_switch(dp)
-        elif dpid == self.dpid_isp_switch:
-            self.logger.info("Installing proactive ISP switch flows")
-            self.add_flow_isp_switch(dp)
-        else:
-            self.logger.warning(f"Unknown switch DPID: {dpid:016x}, no flow rules installed.")
         
-        # self.add_proactive_flow(dp)
+        self.add_proactive_flow(dp)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def packet_in_handler(self, ev):
@@ -97,21 +84,19 @@ class SNACKSwitch(app_manager.RyuApp):
         ofp = dp.ofproto  # openflow protocol
         ofp_parser = dp.ofproto_parser
         dpid = dp.id
-        match_arp = ofp_parser.OFPMatch(eth_type=0x0806) #ARP
-        actions = [ofp_parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-        self.add_flow(dp, 1, match_arp, actions)
-        '''if dpid == self.dpid_central:
-            self.logger.info("Installing proactive firewall rules")
-            self.add_flow_firewall(dp)'''
-        if dpid in self.dpid_dumb_switches:
-            self.logger.info("Installing proactive dumb switches flows")
-            self.add_flow_dumb_switch(dp)
-        elif dpid == self.dpid_central:
-            self.logger.info("Central switch handled reactively")
+
+        if dpid == self.dpid_central:
+            self.logger.info("Firewall rules are handled reactively")
+            #self.add_flow_firewall(dp)
             self.add_flow_central_switch(dp)
+        elif dpid in self.dpid_dumb_switches:
+            self.logger.info("Installing basic flow on dumb switch")
+            self.add_flow_dumb_switch(dp)
+        elif dpid == self.dpid_isp_switch:
+            self.logger.info("Installing proactive ISP switch flows")
+            self.add_flow_isp_switch(dp)
         else:
-            self.logger.info("Unknown switch! No proactive flows installed")
-        # TODO: Check datapath to distinguish dumb switches and firewall (move checking if necessary)
+            self.logger.warning(f"Unknown switch DPID: {dpid:016x}, no flow rules installed.")
 
     def add_reactive_flow(self, dp, msg):
         """
