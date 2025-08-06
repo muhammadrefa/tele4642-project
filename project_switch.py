@@ -66,7 +66,7 @@ class SNACKSwitch(app_manager.RyuApp):
         if eth.ethertype == 0x88cc:
             return
 
-        self.logger.info(f"Packetin from switch {dp.id:012x}, in_port {in_port}, src {eth.src}, dst {eth.dst}")
+        self.logger.info(f"Packetin from switch {dp.id:016x}, in_port {in_port}, src {eth.src}, dst {eth.dst}")
 
         if dp.id == self.dpid_central:
             self.logger.info("Packet came from firewall. Applying reactive flow logic.")
