@@ -31,7 +31,7 @@ class SNACKSwitch(app_manager.RyuApp):
         
         self.social_dept_ips = ['10.1.1.1', '10.1.1.2']
         self.other_dept_ips = ['10.1.2.1', '10.1.2.2']
-        self.social_media_ips = ['10.2.1.1', '10.2.4.1']
+        self.social_media_ips = ['10.2.1.1', '10.2.2.1']
         self.productivity_ips = ['10.2.3.1', '10.2.4.1']
 
         self.dpid_central = 0x0000000000010101
