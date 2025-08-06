@@ -25,9 +25,9 @@ class SNACKSwitch(app_manager.RyuApp):
         super().__init__(*args, **kwargs)
 
         # TODO: set allowed & blocked time in secs (done as class member (or other convenient way)))
-        self.time_allowed = 3600
-        self.time_blocked = 3600
-        self.start_time = time.time()
+        self.time_allowed = 10
+        self.time_blocked = 20
+        # self.start_time = time.time()
         
         self.social_dept_ips = ['10.1.1.1', '10.1.1.2']
         self.other_dept_ips = ['10.1.2.1', '10.1.2.2']
@@ -37,7 +37,7 @@ class SNACKSwitch(app_manager.RyuApp):
         self.dpid_central = 0x0000000000010101
         self.dpid_dumb_switches = {0x0000000000010001, 0x0000000000010002}
         self.dpid_isp_switch = 0x0000000000020001
-        self.pair_timers = {}
+        # self.pair_timers = {}
         self.logger.info(f"SNACK initialised!")
         self.logger.info(f"Allow time: {self.time_allowed} secs.")
         self.logger.info(f"Block time: {self.time_blocked} secs.")
@@ -175,7 +175,7 @@ class SNACKSwitch(app_manager.RyuApp):
 
         for subnet in range(1, 3):
             match = parser.OFPMatch(eth_type=0x0800, ipv4_dst=f'10.1.{subnet}.0/24') # match IPv4 packets in the subnet
-            actions = [parser.OFPActionOutput(subnet)] # action: sending the packet normally
+            actions = [parser.OFPActionOutput(subnet)] # action: forward to dept. switch
             inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
 
             mod = parser.OFPFlowMod(
@@ -187,8 +187,38 @@ class SNACKSwitch(app_manager.RyuApp):
 
             dp.send_msg(mod)
 
+        # flow for packets to social media servers
+        for socmed_svr_ip in self.social_media_ips:
+            # forward packets from social media department
+            match = parser.OFPMatch(eth_type=0x0800, ipv4_src="10.1.1.0/24", ipv4_dst=socmed_svr_ip) # match all IPv4 packets
+            actions = [parser.OFPActionOutput(3)] # action: forward to isp switch
+            inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+            mod = parser.OFPFlowMod(
+                datapath=dp,
+                priority=1,
+                match=match,
+                instructions=inst
+            )
+
+            dp.send_msg(mod)
+
+            # send packet to controller for other hosts
+            match = parser.OFPMatch(eth_type=0x0800, ipv4_dst=socmed_svr_ip) # match all IPv4 packets
+            actions = [parser.OFPActionOutput(ofp.OFPP_CONTROLLER, ofp.OFPCML_NO_BUFFER)] # action: send to controller
+            inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
+
+            mod = parser.OFPFlowMod(
+                datapath=dp,
+                priority=1,
+                match=match,
+                instructions=inst
+            )
+
+            dp.send_msg(mod)
+
         match = parser.OFPMatch(eth_type=0x0800, ipv4_dst="10.2.0.0/16") # match all IPv4 packets
-        actions = [parser.OFPActionOutput(3)] # action: sending the packet to the central switch
+        actions = [parser.OFPActionOutput(3)] # action: forward to isp switch
         inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)] #apply actions
 
         mod = parser.OFPFlowMod(
@@ -272,44 +302,44 @@ class SNACKSwitch(app_manager.RyuApp):
         """
         parser = dp.ofproto_parser
         ofp = dp.ofproto
-        match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src_ip, ipv4_dst=dst_ip)
+        # match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src_ip, ipv4_dst=dst_ip)
 
-        if src_ip in self.social_dept_ips:
-            self.logger.info(f"[ALLOW] Social Dept {src_ip} to {dst_ip}")
-            actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-            self.add_flow(dp, 10, match, actions)
-            return
-
-        if src_ip in self.other_dept_ips and dst_ip in self.productivity_ips:
-            self.logger.info(f"[ALLOW] Other Dept {src_ip} to productivity {dst_ip}")
-            actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-            self.add_flow(dp, 10, match, actions)
-            return
-
-        if src_ip in self.other_dept_ips and dst_ip in self.social_media_ips:
-            key = (src_ip, dst_ip)
-            now = time.time()
-            if key not in self.pair_timers:
-                self.pair_timers[key] = now
-                self.logger.info(f"Started timer for ({src_ip}, {dst_ip})")
-
-            elapsed = int(now - self.pair_timers[key])
-            cycle_time = self.time_allowed + self.time_blocked
-            time_in_cycle = elapsed % cycle_time
-            allow = time_in_cycle < self.time_allowed
-
-            if allow:
-                self.logger.info(f"[ALLOW] {src_ip} to {dst_ip} (within allowed window)")
-                actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-            else:
-                self.logger.info(f"[BLOCK] {src_ip} to {dst_ip} (within blocked window)")
-                actions = []
-
-            self.add_flow(dp, 10, match, actions, hard_timeout=3600)
-            return
-
-        self.logger.warning(f"[DROP] Unknown or unexpected traffic: {src_ip} -> {dst_ip}")
-        self.add_flow(dp, 10, match, [])
+        # if src_ip in self.social_dept_ips:
+        #     self.logger.info(f"[ALLOW] Social Dept {src_ip} to {dst_ip}")
+        #     actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+        #     self.add_flow(dp, 10, match, actions)
+        #     return
+        #
+        # if src_ip in self.other_dept_ips and dst_ip in self.productivity_ips:
+        #     self.logger.info(f"[ALLOW] Other Dept {src_ip} to productivity {dst_ip}")
+        #     actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+        #     self.add_flow(dp, 10, match, actions)
+        #     return
+        #
+        # if src_ip in self.other_dept_ips and dst_ip in self.social_media_ips:
+        #     key = (src_ip, dst_ip)
+        #     now = time.time()
+        #     if key not in self.pair_timers:
+        #         self.pair_timers[key] = now
+        #         self.logger.info(f"Started timer for ({src_ip}, {dst_ip})")
+        #
+        #     elapsed = int(now - self.pair_timers[key])
+        #     cycle_time = self.time_allowed + self.time_blocked
+        #     time_in_cycle = elapsed % cycle_time
+        #     allow = time_in_cycle < self.time_allowed
+        #
+        #     if allow:
+        #         self.logger.info(f"[ALLOW] {src_ip} to {dst_ip} (within allowed window)")
+        #         actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
+        #     else:
+        #         self.logger.info(f"[BLOCK] {src_ip} to {dst_ip} (within blocked window)")
+        #         actions = []
+        #
+        #     self.add_flow(dp, 10, match, actions, hard_timeout=3600)
+        #     return
+        #
+        # self.logger.warning(f"[DROP] Unknown or unexpected traffic: {src_ip} -> {dst_ip}")
+        # self.add_flow(dp, 10, match, [])
 
         '''ofp = dp.ofproto
         parser = dp.ofproto_parser
@@ -339,10 +369,35 @@ class SNACKSwitch(app_manager.RyuApp):
                     actions = []  # Drop
                 self.add_flow(dp, 10, match, actions)'''
 
+        match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src_ip, ipv4_dst=dst_ip)
 
-        
-        # TODO: Flow table for firewall (reactive). Add arguments if needed
-        pass
+        # Forward traffic for defined forward timeout
+        actions = [parser.OFPActionOutput(3)]
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=12,
+            hard_timeout=self.time_allowed,
+            match=match,
+            instructions=[parser.OFPInstructionActions(
+                ofp.OFPIT_APPLY_ACTIONS,
+                actions
+            )]
+        )
+        dp.send_msg(mod)
+
+        # Block traffic for defined block timeout + forward timeout
+        actions = []        # Block
+        mod = parser.OFPFlowMod(
+            datapath=dp,
+            priority=11,
+            hard_timeout=self.time_allowed+self.time_blocked,
+            match=match,
+            instructions=[parser.OFPInstructionActions(
+                ofp.OFPIT_APPLY_ACTIONS,
+                actions
+            )]
+        )
+        dp.send_msg(mod)
 
     def add_flow(self, dp, priority, match, actions, idle_timeout=0, hard_timeout=0):
         ofp = dp.ofproto
