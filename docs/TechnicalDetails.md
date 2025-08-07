@@ -96,13 +96,13 @@ Hosts
 Description: Switch in the Internet Service Provider (ISP)  
 DPID: `00:00:00:00:00:02:00:01`
 
-| Port number | Connected to   |
-| ----------- |----------------|
-| 1 | `swCentral`    |
-| 2 | `twitter`      |
-| 3 | `facebook`     |
-| 3 | `google`       |
-| 3 | `microsoft365` |
+| Port number | Connected to |
+|-------------|--------------|
+| 1           | `swCentral`  |
+| 2           | `twitter`    |
+| 3           | `facebook`   |
+| 4           | `google`     |
+| 5           | `m365`       |
 
 
 Flow table
@@ -158,39 +158,45 @@ participant c as Controller
 participant isp as ISP switch
 participant svr as Social media server
 
-h->>swO: Access social media service
-swO->>swC: Forward packet
-swC->>c: Send packet
+h->>swO: Access social media service (packet #35;1)
+swO->>swC: Forward packet #35;1
+swC->>c: Send packet #35;1
 c->>swC: Push reactive flow
-swC->>isp: Forward packet
-isp->>svr: Forward packet
+
+Note over h: Next packet
+
+h->>swO: Access social media service
+swO->>swC: Forward packet #35;2
+swC->>c: Send packet  #35;2
+swC->>isp: Forward packet #35;2
+isp->>svr: Forward packet #35;2
 svr->>isp: Reply
-isp->>swC: Forward packet
-swC->>swO: Forward packet
-swO->>h: Forward packet
+isp->>swC: Forward reply packet
+swC->>swO: Forward reply packet
+swO->>h: Forward reply packet
 
-Note over h, svr: Next packet
+Note over h: Next packet
 
-h->>swO: Access social media service
-swO->>swC: Forward packet
-swC->>isp: Forward packet
-isp->>svr: Forward packet
+h->>swO: Access social media service (packet #35;3)
+swO->>swC: Forward packet #35;3
+swC->>isp: Forward packet #35;3
+isp->>svr: Forward packet #35;3
 
-Note over h, svr: After time=t_allowed
+Note over h, svr: After time=t_allow
 
-h->>swO: Access social media service
-swO->>swC: Forward packet
-swC->>swC: Drop packet
+h->>swO: Access social media service (packet #35;n)
+swO->>swC: Forward packet #35;n
+swC->>swC: Drop packet #35;n
 ```
 
 There are 2 flows that pushed by the controller:
-- Forward packets from `swO` to social media services for `t=time_allowed` with `priority=X`
-- Drop packets from `sw0` to social media services for `t=time_allowed+time_blocked` with `priority=X-1`
+- Forward packets from `swO` to social media services for `t=time_allow` with `priority=X`
+- Drop packets from `sw0` to social media services for `t=time_allow+time_block` with `priority=X-1`
 
 In order to set time limit, we used hard-timeouts. This type of timeout will keep the flow for certain time,
 no matter if it used or not. Since the forwarding flow has the higher priority than the dropping flow, the packet will
 be forwarded as long as the flow still exist. When the forwarding flow expires, the dropping flow will still there to
-drop the packets for `time_blocked`. The reactive flow will be generated again when both flows have expired.
+drop the packets for `time_block`. The reactive flow will be generated again when both flows have expired.
 
 - - -
 
