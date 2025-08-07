@@ -24,9 +24,7 @@ class SNACKTopo(Topo):
         # ----- GENERATE NETWORK DEVICES ----- #
 
         # --- Internal network devices --- #
-        # TODO: Social media dept. hosts
-        # TODO: Other dept. hosts
-        # TODO: Internal switches
+
         # Define departments and their /24 subnets (second octet)
         # --- Internal departmental switches ---
         swS = self.addSwitch(name='swS', dpid='0000000000010001')
@@ -69,28 +67,6 @@ class SNACKTopo(Topo):
         self.addLink(isp_sw, facebook, port1=3)
         self.addLink(isp_sw, google, port1=4)
         self.addLink(isp_sw, m365, port1=5)
-
-
-
-        # Example (from Fat Tree Topo)
-        # edSws = [[self.addSwitch(f'edSw{pod}{i}', dpid=f'0000000000{pod:02X}{i:02X}01') for i in range(0, edSw_cnt)] for pod in range(0, k)]
-        # hosts = [[self.addHost(f'host{pod}{i}', ip=f'10.{pod}.{math.floor(i/edSw_cnt)}.{(i%edSw_cnt)+2}') for i in range(0, host_cnt)] for pod in range(0, k)]
-
-        # ----- ESTABLISH CONNECTIONS ----- #
-
-        # --- Internal network connection --- #
-        # TODO: Connect hosts from social media dept. to dept. switch
-        # TODO: Connect hosts from other dept. to dept. switch
-        # TODO: Connect dept. switch to central switch
-
-        # --- External network simulated network --- #
-        # TODO: Connect servers to ISP switch
-
-        # --- Connect internal-external network --- #
-        # TODO: Connect central switch to ISP switch
-
-        # Example (from Fat Tree Topo)
-        # self.addLink(edSws[pod][i], hosts[pod][(i * edSw_cnt) + j], port1=j+1)
 
 
 topos = {'snack': SNACKTopo}
