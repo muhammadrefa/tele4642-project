@@ -9,6 +9,7 @@ TELE4642 Network Technologies project
 
 The University of New South Wales - 2025
 """
+
 import time
 from ryu.base import app_manager
 from ryu.controller import ofp_event
@@ -16,15 +17,21 @@ from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ipv4, ethernet
+from ryu.app.wsgi import WSGIApplication
+
+from project_switch_api import SNACKController
 
 
 class SNACKSwitch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+    _CONTEXTS = {'wsgi': WSGIApplication}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # TODO: set allowed & blocked time in secs (done as class member (or other convenient way)))
+        wsgi = kwargs['wsgi']
+        wsgi.register(SNACKController, {'snack_api_app': self})
+
         self.time_allowed = 10
         self.time_blocked = 20
         # self.start_time = time.time()
@@ -42,6 +49,10 @@ class SNACKSwitch(app_manager.RyuApp):
         self.logger.info(f"Allow time: {self.time_allowed} secs.")
         self.logger.info(f"Block time: {self.time_blocked} secs.")
 
+        # Used for API
+        self._central_flow = {'last_get': 0.0, 'flow': list()}
+        self._central_switch = None
+
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_feature_handler(self, ev):
         msg = ev.msg  # packet_in data structure
@@ -49,6 +60,9 @@ class SNACKSwitch(app_manager.RyuApp):
         dpid = dp.id
 
         self.logger.info(f"Switch connected with DPID: {dpid:016x}")
+
+        if dpid == self.dpid_central:
+            self._central_switch = dp       # TODO: What if the switch leaving?
         
         self.add_proactive_flow(dp)
 
@@ -75,6 +89,26 @@ class SNACKSwitch(app_manager.RyuApp):
             self.logger.info("Packet came from dumb switch. Ignored.")
         
         #self.add_reactive_flow(dp)
+
+    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    def flow_stats_reply_handler(self, ev):
+        if ev.msg.datapath.id == self._central_switch.id:
+            self.logger.info('Flow from central switch received!')
+            # self._central_flow['flow'] = ev.msg.body
+            self._central_flow['flow'] = list()
+            for stat in ev.msg.body:
+                match = dict()
+                for k, v in stat.match.items():
+                    match[k] = v
+                self._central_flow['flow'].append(
+                    {
+                        'duration_sec': stat.duration_sec,
+                        'priority': stat.priority,
+                        'hard_timeout': stat.hard_timeout,
+                        'match': match
+                    }
+                )
+            self._central_flow['last_get'] = time.monotonic()
 
     def add_proactive_flow(self, dp) -> None:
         """
@@ -302,73 +336,6 @@ class SNACKSwitch(app_manager.RyuApp):
         """
         parser = dp.ofproto_parser
         ofp = dp.ofproto
-        # match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src_ip, ipv4_dst=dst_ip)
-
-        # if src_ip in self.social_dept_ips:
-        #     self.logger.info(f"[ALLOW] Social Dept {src_ip} to {dst_ip}")
-        #     actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-        #     self.add_flow(dp, 10, match, actions)
-        #     return
-        #
-        # if src_ip in self.other_dept_ips and dst_ip in self.productivity_ips:
-        #     self.logger.info(f"[ALLOW] Other Dept {src_ip} to productivity {dst_ip}")
-        #     actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-        #     self.add_flow(dp, 10, match, actions)
-        #     return
-        #
-        # if src_ip in self.other_dept_ips and dst_ip in self.social_media_ips:
-        #     key = (src_ip, dst_ip)
-        #     now = time.time()
-        #     if key not in self.pair_timers:
-        #         self.pair_timers[key] = now
-        #         self.logger.info(f"Started timer for ({src_ip}, {dst_ip})")
-        #
-        #     elapsed = int(now - self.pair_timers[key])
-        #     cycle_time = self.time_allowed + self.time_blocked
-        #     time_in_cycle = elapsed % cycle_time
-        #     allow = time_in_cycle < self.time_allowed
-        #
-        #     if allow:
-        #         self.logger.info(f"[ALLOW] {src_ip} to {dst_ip} (within allowed window)")
-        #         actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-        #     else:
-        #         self.logger.info(f"[BLOCK] {src_ip} to {dst_ip} (within blocked window)")
-        #         actions = []
-        #
-        #     self.add_flow(dp, 10, match, actions, hard_timeout=3600)
-        #     return
-        #
-        # self.logger.warning(f"[DROP] Unknown or unexpected traffic: {src_ip} -> {dst_ip}")
-        # self.add_flow(dp, 10, match, [])
-
-        '''ofp = dp.ofproto
-        parser = dp.ofproto_parser
-        now = time.time()
-        elapsed = int(now - self.start_time)
-        allow_period = (elapsed // (self.time_allowed + self.time_blocked)) % 2 == 0
-        self.logger.info(f"Installing firewall rules on switch {dp.id} at time {elapsed}s. Allow period: {allow_period}")
-       
-        for src in self.social_dept_ips: # traffic from social media dept to any destination
-            for dst in self.social_media_ips + self.productivity_ips:
-                match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src, ipv4_dst=dst)
-                actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-                self.add_flow(dp, 10, match, actions)
-
-        for src in self.other_dept_ips: # traffic from other dept to productivity services
-            for dst in self.productivity_ips:
-                match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src, ipv4_dst=dst)
-                actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]
-                self.add_flow(dp, 10, match, actions)
-
-        for src in self.other_dept_ips: # controlled traffic from other dept to social media services
-            for dst in self.social_media_ips:
-                match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src, ipv4_dst=dst)
-                if allow_period:
-                    actions = [parser.OFPActionOutput(ofp.OFPP_NORMAL)]  # Allow
-                else:
-                    actions = []  # Drop
-                self.add_flow(dp, 10, match, actions)'''
-
         match = parser.OFPMatch(eth_type=0x0800, ipv4_src=src_ip, ipv4_dst=dst_ip)
 
         # Forward traffic for defined forward timeout
@@ -399,13 +366,19 @@ class SNACKSwitch(app_manager.RyuApp):
         )
         dp.send_msg(mod)
 
-    def add_flow(self, dp, priority, match, actions, idle_timeout=0, hard_timeout=0):
-        ofp = dp.ofproto
-        parser = dp.ofproto_parser
-        inst = [parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)]
-        mod = parser.OFPFlowMod(
-            datapath=dp, priority=priority, match=match,
-            instructions=inst, idle_timeout=idle_timeout,
-            hard_timeout=hard_timeout
-        )
-        dp.send_msg(mod)
+    def api_get_limited_host_status(self):
+        if self._central_flow['last_get'] < 0:      # requesting
+            return None
+        elif time.monotonic() - self._central_flow['last_get'] >= 5:    # request
+            if self._central_switch is not None:
+                self.logger.info('Will request flow stats to central switch')
+                self._central_flow['last_get'] = -1
+
+                ofp = self._central_switch.ofproto
+                ofp_parser = self._central_switch.ofproto_parser
+
+                req = ofp_parser.OFPFlowStatsRequest(self._central_switch)
+                self._central_switch.send_msg(req)
+            return None
+        else:
+            return {'time_since_update': time.monotonic() - self._central_flow['last_get'], 'flow': self._central_flow['flow']}
