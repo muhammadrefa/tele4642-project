@@ -369,7 +369,7 @@ class SNACKSwitch(app_manager.RyuApp):
     def api_get_limited_host_status(self):
         if self._central_flow['last_get'] < 0:      # requesting
             return None
-        elif time.monotonic() - self._central_flow['last_get'] >= 5:    # request
+        elif time.monotonic() - self._central_flow['last_get'] >= 3:    # request
             if self._central_switch is not None:
                 self.logger.info('Will request flow stats to central switch')
                 self._central_flow['last_get'] = -1
