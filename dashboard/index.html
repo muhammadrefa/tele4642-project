@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SNACK Dashboard</title>
+
+        <!-- Bootstrap core CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="d-flex flex-column min-vh-100 bg-light">
+        <main class="flex-fill">
+            <div class="container">
+                <div class="row pt-4 text-center">
+                    <h1 class="h2">SNACK Dashboard</h1>
+                </div>
+
+                <div class="row pt-2">
+                    <div class="col-6 text-center">
+                        <p class="h5">Currently allowed</p>
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Client IP</th>
+                                <th>Server IP</th>
+                                <th>Time remaining (s)</th>
+                            </tr>
+                            </thead>
+                            <tbody id="allowlist"></tbody>
+                        </table>
+                    </div>
+                    <div class="col-6 text-center">
+                        <p class="h5">Currently blocked</p>
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Client IP</th>
+                                <th>Server IP</th>
+                                <th>Time remaining (s)</th>
+                            </tr>
+                            </thead>
+                            <tbody id="blocklist"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class="footer mt-auto py-3">
+            <div class="container text-center text-muted" id="footer">
+                SNACK: Social Network Access Connection Kontroller - 2025
+            </div>
+        </footer>
+
+        <!-- Scripts -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            var controller_url = "http://127.0.0.1:8080";
+
+            const allowTable = document.querySelector('tbody#allowlist');
+            const blockTable = document.querySelector('tbody#blocklist');
+
+            function appendToTable(table, data) {
+                    var tr = document.createElement("tr");
+                    tr.innerHTML = "";
+                    tr.innerHTML += "<td>" + data.client + "</td>";
+                    tr.innerHTML += "<td>" + data.server + "</td>";
+                    tr.innerHTML += "<td>" + data.remaining + "</td>";
+
+                    table.appendChild(tr);
+            }
+
+            async function getFlow() {
+                try {
+                    const response = await fetch(controller_url + "/snack/get/limited_host_status");
+                    if (!response.ok) {
+                        console.log(`Failed to fetch flow! Status: ${response.status}`);
+                    }
+                    else {
+                        const data = await response.json();
+
+                        if (data == null)
+                            return;
+
+                        while (allowTable.firstChild)
+                            allowTable.removeChild(allowTable.firstChild);
+                        while (blockTable.firstChild)
+                            blockTable.removeChild(blockTable.firstChild);
+
+                        allow_list = {};
+                        block_list = {};
+
+                        for (var i=0; i<data.flow.length; i++) {
+                            if (data.flow[i].priority == 12) {
+                                if (data.flow[i].match.ipv4_src in block_list) {
+                                    for (var j=0; j<block_list[data.flow[i].match.ipv4_src].length; j++) {
+                                        if (block_list[data.flow[i].match.ipv4_src][j][0] == data.flow[i].match.ipv4_dst) {
+                                            block_list[data.flow[i].match.ipv4_src].splice(j, 1);
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (!(data.flow[i].match.ipv4_src in allow_list))
+                                    allow_list[data.flow[i].match.ipv4_src] = [];
+
+                                allow_list[data.flow[i].match.ipv4_src].push([data.flow[i].match.ipv4_dst, data.flow[i].hard_timeout - data.flow[i].duration_sec]);
+                            }
+                            else if (data.flow[i].priority == 11) {
+                                var allowed = false;
+                                if (data.flow[i].match.ipv4_src in allow_list) {
+                                    for (var j=0; j<allow_list[data.flow[i].match.ipv4_src].length; j++) {
+                                        if (allow_list[data.flow[i].match.ipv4_src][j][0] == data.flow[i].match.ipv4_dst) {
+                                            allowed = true;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (!allowed) {
+                                    if (!(data.flow[i].match.ipv4_src in block_list))
+                                        block_list[data.flow[i].match.ipv4_src] = [];
+
+                                    block_list[data.flow[i].match.ipv4_src].push([data.flow[i].match.ipv4_dst, data.flow[i].hard_timeout - data.flow[i].duration_sec]);
+                                }
+                            }
+                        }
+
+                        for (var [k, v] of Object.entries(allow_list)) {
+                            for (var j=0; j<v.length; j++) {
+                                appendToTable(allowTable, {
+                                    client: k,
+                                    server: v[j][0],
+                                    remaining: v[j][1]
+                                });
+                            }
+                        }
+
+                        for (var [k, v] of Object.entries(block_list)) {
+                            for (var j=0; j<v.length; j++) {
+                                appendToTable(blockTable, {
+                                    client: k,
+                                    server: v[j][0],
+                                    remaining: v[j][1]
+                                });
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                }
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                getFlow();
+            });
+        </script>
+    </body>
+
+</html>
