@@ -86,22 +86,61 @@
                         while (blockTable.firstChild)
                             blockTable.removeChild(blockTable.firstChild);
 
-                        for (var i=0; i<data.flow.length; i++)
-                        {
-                            if (data.flow[i].priority == 12)
-                            {
+                        allow_list = {};
+                        block_list = {};
+
+                        for (var i=0; i<data.flow.length; i++) {
+                            if (data.flow[i].priority == 12) {
+                                if (data.flow[i].match.ipv4_src in block_list) {
+                                    for (var j=0; j<block_list[data.flow[i].match.ipv4_src].length; j++) {
+                                        if (block_list[data.flow[i].match.ipv4_src][j][0] == data.flow[i].match.ipv4_dst) {
+                                            block_list[data.flow[i].match.ipv4_src].splice(j, 1);
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (!(data.flow[i].match.ipv4_src in allow_list))
+                                    allow_list[data.flow[i].match.ipv4_src] = [];
+
+                                allow_list[data.flow[i].match.ipv4_src].push([data.flow[i].match.ipv4_dst, data.flow[i].hard_timeout - data.flow[i].duration_sec]);
+                            }
+                            else if (data.flow[i].priority == 11) {
+                                var allowed = false;
+                                if (data.flow[i].match.ipv4_src in allow_list) {
+                                    for (var j=0; j<allow_list[data.flow[i].match.ipv4_src].length; j++) {
+                                        if (allow_list[data.flow[i].match.ipv4_src][j][0] == data.flow[i].match.ipv4_dst) {
+                                            allowed = true;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (!allowed) {
+                                    if (!(data.flow[i].match.ipv4_src in block_list))
+                                        block_list[data.flow[i].match.ipv4_src] = [];
+
+                                    block_list[data.flow[i].match.ipv4_src].push([data.flow[i].match.ipv4_dst, data.flow[i].hard_timeout - data.flow[i].duration_sec]);
+                                }
+                            }
+                        }
+
+                        for (var [k, v] of Object.entries(allow_list)) {
+                            for (var j=0; j<v.length; j++) {
                                 appendToTable(allowTable, {
-                                    client: data.flow[i].match.ipv4_src,
-                                    server: data.flow[i].match.ipv4_dst,
-                                    remaining: data.flow[i].hard_timeout - data.flow[i].duration_sec
+                                    client: k,
+                                    server: v[j][0],
+                                    remaining: v[j][1]
                                 });
                             }
-                            else if (data.flow[i].priority == 11)
-                            {
+                        }
+
+                        for (var [k, v] of Object.entries(block_list)) {
+                            for (var j=0; j<v.length; j++) {
                                 appendToTable(blockTable, {
-                                    client: data.flow[i].match.ipv4_src,
-                                    server: data.flow[i].match.ipv4_dst,
-                                    remaining: data.flow[i].hard_timeout - data.flow[i].duration_sec
+                                    client: k,
+                                    server: v[j][0],
+                                    remaining: v[j][1]
                                 });
                             }
                         }
